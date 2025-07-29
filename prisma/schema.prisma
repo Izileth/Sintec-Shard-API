@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+
+
+model User {
+  id             Int       @id @default(autoincrement())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime @updatedAt @map("updatedAt")
+  email          String    @unique
+  name           String?
+  role           Role      @default(USER)
+  isActive       Boolean  @default(true)
+  birthDate      DateTime?
+  bio            String?   @db.Text
+  avatarUrl      String?   // URL da imagem de perfil
+  username       String?   @unique
+  website        String?
+  location       String?
+  
+  passwordHash   String
+  
+  resetToken      String?   
+  resetTokenExpires DateTime?
+
+  resetCode       String?   
+  resetCodeExpires DateTime?
+
+  refreshToken     String?  
+  refreshTokenExp  DateTime?
+
+  posts          Post[]
+  comments       Comment[]
+}
+
+model Post {
+  id              Int        @id @default(autoincrement())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  published       Boolean    @default(false)
+  title           String     @db.VarChar(255)
+  slug            String     @unique
+  content         String
+  excerpt         String?    @db.VarChar(300)
+  coverImageUrl   String?   
+  metaTitle       String?    @db.VarChar(70)
+  metaDescription String?    @db.VarChar(160)
+
+  author          User?      @relation(fields: [authorId], references: [id])
+  authorId        Int?
+
+  categories      Category[] @relation("PostCategories")
+  tags            Tag[]      @relation("PostTags")
+  comments        Comment[]
+}
+
+model Category {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  posts Post[] @relation("PostCategories")
+}
+
+model Tag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique
+  posts Post[] @relation("PostTags")
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  content   String
+
+  post      Post     @relation(fields: [postId], references: [id])
+  postId    Int
+
+  author    User?    @relation(fields: [authorId], references: [id])
+  authorId  Int?
+}
+
+enum Role {
+  USER
+  ADMIN
+}
