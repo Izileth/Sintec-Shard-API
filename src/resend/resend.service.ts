@@ -1,8 +1,10 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Resend } from 'resend';
 
+
 @Injectable()
 export class ResendService {
+
   constructor(@Inject('RESEND') private readonly resend: Resend) {}
 
   async sendPasswordResetEmail(email: string, name: string, resetLink: string) {

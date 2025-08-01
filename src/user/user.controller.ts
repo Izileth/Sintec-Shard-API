@@ -1,22 +1,40 @@
-import { Delete, Get, Post, Put } from '@nestjs/common';
-import { Controller } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
 import { UserService } from './user.service';
+import { UserDto } from './types';
+import { JwtGuard } from 'src/guards/private.jwt.guard';
+import { GetUser } from 'src/decorator/private.user.decorator';
+import { User } from 'generated/prisma';
+
 @Controller('user')
+@UseGuards(JwtGuard)
 export class UserController {
-    constructor(private userService: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
-    @Get('/entire')
-    getUser() {}
+  @Get()
+  async getAllUsers(@GetUser() user: User) {
+    return this.userService.getUsers(user.id);
+  }
 
-    @Get('/:id')
-    getUserById() {}
+  @Get('me')
+  async getCurrentUser(@GetUser() user: User) {
+    return this.userService.getUserById(user.id);
+  }
 
-    @Post()
-    createUser() {}
+  @Get(':id')
+  async getUser(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.getUserById(id);
+  }
 
-    @Delete('/:id')
-    removeUser() {}
+  @Put('update/:id')
+  async updateUser(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: UserDto
+  ) {
+    return this.userService.updateUser(id, dto);
+  }
 
-    @Put('/:id')
-    updateUser() {}
+  @Delete('detete/:id')
+  async deleteUser(@Param('id', ParseIntPipe) id: number) {
+    return this.userService.deactivateUser(id);
+  }
 }

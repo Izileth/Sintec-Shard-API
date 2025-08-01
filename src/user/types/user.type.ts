@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { Role } from 'generated/prisma';
 
-export class CreateUserDto {
+export class UserDto {
   @IsEmail()
   email: string;
 
