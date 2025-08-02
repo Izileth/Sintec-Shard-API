@@ -19,11 +19,11 @@ datasource db {
 model User {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now())
-  updatedAt      DateTime @updatedAt @map("updatedAt")
+  updatedAt      DateTime  @updatedAt @map("updatedAt")
   email          String    @unique
   name           String?
   role           Role      @default(USER)
-  isActive       Boolean  @default(true)
+  isActive       Boolean   @default(true)
   birthDate      DateTime?
   bio            String?   @db.Text
   avatarUrl      String?   // URL da imagem de perfil
@@ -44,8 +44,8 @@ model User {
 
   posts          Post[]
   comments       Comment[]
+  favoritesPosts UserFavoritePost[]
 }
-
 model Post {
   id              Int        @id @default(autoincrement())
   createdAt       DateTime   @default(now())
@@ -65,17 +65,18 @@ model Post {
   categories      Category[] @relation("PostCategories")
   tags            Tag[]      @relation("PostTags")
   comments        Comment[]
+  favoritedBy     UserFavoritePost[]
 }
-
 model Category {
   id    Int    @id @default(autoincrement())
   name  String @unique
+  slug  String @unique
   posts Post[] @relation("PostCategories")
 }
-
 model Tag {
   id    Int    @id @default(autoincrement())
   name  String @unique
+  slug  String @unique
   posts Post[] @relation("PostTags")
 }
 
@@ -84,12 +85,25 @@ model Comment {
   createdAt DateTime @default(now())
   content   String
 
-  post      Post     @relation(fields: [postId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   postId    Int
 
   author    User?    @relation(fields: [authorId], references: [id])
   authorId  Int?
 }
+
+model UserFavoritePost {
+  id       Int  @id @default(autoincrement())
+  userId   Int
+  postId   Int
+  createdAt DateTime @default(now())
+
+  user     User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post     Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
 
 enum Role {
   USER

@@ -9,8 +9,9 @@ import { UserModule } from './user/user.module';
 import { CommentModule } from './comment/comment.module';
 import { TagsModule } from './tags/tags.module';
 import { JwtModule } from '@nestjs/jwt';
+import { CloudinaryModule } from './cloudnary/cloudnary.module';
 @Module({
-  imports: [AuthModule, PrismaModule, PostModule, CategoryModule, UserModule, CommentModule, TagsModule, JwtModule],
+  imports: [AuthModule, PrismaModule, PostModule, CategoryModule, UserModule, CommentModule, TagsModule, JwtModule, CloudinaryModule],
   controllers: [AppController],
   providers: [AppService],
 })
