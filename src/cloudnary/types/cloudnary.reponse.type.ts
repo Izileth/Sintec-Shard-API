@@ -5,3 +5,4 @@ export interface CloudinaryResponse {
   height: number;
   format: string;
 }
+

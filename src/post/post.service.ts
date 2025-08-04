@@ -2,13 +2,12 @@ import { ForbiddenException, Injectable, NotFoundException, BadRequestException 
 import { CreatePostDto, UpdatePostDto, PostFilterDto } from './types';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { Inject } from '@nestjs/common';
-import { CloudinaryModule } from 'src/cloudnary/cloudnary.module';
-
+import { v2 as cloudinary } from 'cloudinary'; // Importar o tipo correto
 @Injectable()
 export class PostsService {
     constructor(
         private prisma: PrismaService, 
-        @Inject('CLOUDINARY') private cloudinary: CloudinaryModule,
+        @Inject('CLOUDINARY') private cloudinary: typeof cloudinary
     ){}
 
     private generateSlug(title: string): string {
@@ -741,20 +740,33 @@ export class PostsService {
             }
         };
     }
-
+    
     private async deleteImageFromCloudinary(imageUrl: string) {
         try {
+            // Verificar se o cloudinary está configurado corretamente
+            if (!this.cloudinary || !this.cloudinary.uploader) {
+                console.warn('Cloudinary não configurado. Imagem não será deletada do storage.');
+                return;
+            }
+
             const publicId = imageUrl
                 .split('/')
                 .pop()
                 ?.split('.')[0] || '';
                 
             if (publicId) {
-                // Assumindo que o cloudinary é injetado corretamente e tem o método destroy
-                await (this.cloudinary as any).uploader.destroy(publicId);
+                const result = await this.cloudinary.uploader.destroy(publicId);
+                console.log(`Resultado da exclusão da imagem ${publicId}:`, result);
+                
+                // Verificar se a exclusão foi bem-sucedida
+                if (result.result === 'ok') {
+                    console.log(`Imagem ${publicId} deletada com sucesso do Cloudinary`);
+                } else {
+                    console.warn(`Imagem ${publicId} não foi encontrada no Cloudinary:`, result);
+                }
             }
         } catch (error) {
-            console.error('Error deleting image:', error);
+            console.error('Error deleting image from Cloudinary:', error);
         }
     }
 }
