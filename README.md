@@ -1,4 +1,10 @@
-<h1 align="center">Zaun-API</h1>
+<p align="center">
+  <img src="https://i.pinimg.com/736x/6d/34/8d/6d348d6def078d46ee0edb55687f6ae6.jpg" alt="Sintect Shared Banner" width="250"/>
+</p>
+
+
+<h1 align="center">Sintec-API</h1>
+
 <p align="center">API robusta e escalável para gerenciamento de conteúdo.</p>
 
 <p align="center">
@@ -12,7 +18,7 @@
 
 ## 📜 Visão Geral
 
-A Zaun-API é uma API RESTful completa, desenvolvida com NestJS, que oferece uma base sólida para a construção de aplicações web modernas e ricas em recursos. Ela fornece um sistema de gerenciamento de conteúdo com funcionalidades de autenticação, gerenciamento de usuários, posts, categorias, tags e comentários.
+A Sintac-Shared-API é uma API RESTful completa, desenvolvida com NestJS, que oferece uma base sólida para a construção de aplicações web modernas e ricas em recursos. Ela fornece um sistema de gerenciamento de conteúdo com funcionalidades de autenticação, gerenciamento de usuários, posts, categorias, tags e comentários.
 
 ## ✨ Recursos
 
