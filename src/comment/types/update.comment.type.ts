@@ -1,6 +1,8 @@
+import { IsString, IsNotEmpty, MaxLength } from 'class-validator';
 
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateCommentDto } from './create.comment.type';
-
-export class UpdateCommentDto extends PartialType(CreateCommentDto) {}
-
+export class UpdateCommentDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(2000, { message: 'Comentário não pode exceder 2000 caracteres' })
+  content: string;
+}

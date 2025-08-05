@@ -15,7 +15,6 @@ datasource db {
 }
 
 
-
 model User {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now())
@@ -26,26 +25,30 @@ model User {
   isActive       Boolean   @default(true)
   birthDate      DateTime?
   bio            String?   @db.Text
-  avatarUrl      String?   // URL da imagem de perfil
+  avatarUrl      String?
   username       String?   @unique
   website        String?
   location       String?
   
   passwordHash   String
-  
-  resetToken      String?   
+  resetToken      String?
   resetTokenExpires DateTime?
-
-  resetCode       String?   
+  resetCode       String?
   resetCodeExpires DateTime?
-
-  refreshToken     String?  
+  refreshToken     String?
   refreshTokenExp  DateTime?
 
   posts          Post[]
   comments       Comment[]
   favoritesPosts UserFavoritePost[]
+  
+  // Novas relações para comentários
+  commentLikes     CommentLike[]
+  commentDislikes  CommentDislike[]
+  commentShares    CommentShare[]
+  commentReports   CommentReport[]
 }
+
 model Post {
   id              Int        @id @default(autoincrement())
   createdAt       DateTime   @default(now())
@@ -55,7 +58,7 @@ model Post {
   slug            String     @unique
   content         String
   excerpt         String?    @db.VarChar(300)
-  coverImageUrl   String?   
+  coverImageUrl   String?
   metaTitle       String?    @db.VarChar(70)
   metaDescription String?    @db.VarChar(160)
 
@@ -67,6 +70,145 @@ model Post {
   comments        Comment[]
   favoritedBy     UserFavoritePost[]
 }
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  content   String   @db.Text
+  isEdited  Boolean  @default(false)
+  editedAt  DateTime?
+  
+  // Status do comentário
+  isActive  Boolean  @default(true)
+  isApproved Boolean @default(true)
+  
+  // Relações básicas
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  postId    Int
+  author    User?    @relation(fields: [authorId], references: [id])
+  authorId  Int?
+  
+  // Sistema de comentários hierárquicos (respostas)
+  parent    Comment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  parentId  Int?
+  replies   Comment[] @relation("CommentReplies")
+  
+  // Contadores (desnormalizados para performance)
+  likesCount    Int @default(0)
+  dislikesCount Int @default(0)
+  sharesCount   Int @default(0)
+  repliesCount  Int @default(0)
+  reportsCount  Int @default(0)
+  
+  // Relações com as novas funcionalidades
+  likes     CommentLike[]
+  dislikes  CommentDislike[]
+  shares    CommentShare[]
+  reports   CommentReport[]
+  
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+  @@index([createdAt])
+}
+
+model CommentLike {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int
+  
+  @@unique([userId, commentId])
+  @@index([commentId])
+}
+
+model CommentDislike {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int
+  
+  @@unique([userId, commentId])
+  @@index([commentId])
+}
+
+model CommentShare {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  
+  // Tipo de compartilhamento (social media, email, etc.)
+  shareType ShareType @default(LINK)
+  platform  String?   // Facebook, Twitter, WhatsApp, etc.
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    Int
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int
+  
+  @@index([commentId])
+  @@index([userId])
+}
+
+model CommentReport {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  reason    ReportReason
+  description String?  @db.Text
+  status    ReportStatus @default(PENDING)
+  
+  // Quem reportou
+  reporter  User     @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  reporterId Int
+  
+  // Comentário reportado
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  commentId Int
+  
+  // Admin que processou o report
+  reviewedBy Int?
+  reviewedAt DateTime?
+  reviewNotes String? @db.Text
+  
+  @@index([commentId])
+  @@index([reporterId])
+  @@index([status])
+}
+
+enum ShareType {
+  LINK
+  COPY
+  EMAIL
+  SOCIAL_MEDIA
+}
+
+enum ReportReason {
+  SPAM
+  HARASSMENT
+  HATE_SPEECH
+  INAPPROPRIATE_CONTENT
+  VIOLENCE
+  COPYRIGHT
+  MISINFORMATION
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  APPROVED
+  REJECTED
+  RESOLVED
+}
+
 model Category {
   id    Int    @id @default(autoincrement())
   name  String @unique
@@ -80,17 +222,6 @@ model Tag {
   posts Post[] @relation("PostTags")
 }
 
-model Comment {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  content   String
-
-  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
-  postId    Int
-
-  author    User?    @relation(fields: [authorId], references: [id])
-  authorId  Int?
-}
 
 model UserFavoritePost {
   id       Int  @id @default(autoincrement())

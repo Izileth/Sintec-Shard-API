@@ -7,7 +7,7 @@ import { v2 as cloudinary } from 'cloudinary'; // Importar o tipo correto
 export class PostsService {
     constructor(
         private prisma: PrismaService, 
-        @Inject('CLOUDINARY') private cloudinary: typeof cloudinary
+        @Inject('CLOUDINARY') private cloudinary: typeof import('cloudinary').v2
     ){}
 
     private generateSlug(title: string): string {
