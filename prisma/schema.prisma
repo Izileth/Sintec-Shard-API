@@ -14,7 +14,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model User {
   id             Int       @id @default(autoincrement())
   createdAt      DateTime  @default(now())
@@ -47,6 +46,171 @@ model User {
   commentDislikes  CommentDislike[]
   commentShares    CommentShare[]
   commentReports   CommentReport[]
+  
+  // Relações com comunidades
+  ownedCommunities     Community[] @relation("CommunityOwner")
+  moderatedCommunities CommunityModerator[]
+  joinedCommunities    CommunityMember[]
+  communityPosts       CommunityPost[]
+  communityBans        CommunityBan[]
+}
+
+model Community {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Informações básicas
+  name            String   @unique @db.VarChar(50)  // nome único da comunidade
+  slug            String   @unique @db.VarChar(50)  // URL slug (ex: tecnologia)
+  prefix          String   @db.VarChar(10)          // prefixo (ex: r, c, etc)
+  displayName     String   @db.VarChar(100)         // nome para exibição
+  description     String?  @db.Text
+  rules           String?  @db.Text
+  
+  // Configurações visuais
+  avatarUrl       String?
+  bannerUrl       String?
+  primaryColor    String?  @db.VarChar(7)  // cor hexadecimal
+  
+  // Status e configurações
+  isActive        Boolean  @default(true)
+  isPrivate       Boolean  @default(false)
+  requireApproval Boolean  @default(false)  // posts precisam de aprovação
+  allowImages     Boolean  @default(true)
+  allowVideos     Boolean  @default(true)
+  allowPolls      Boolean  @default(true)
+  
+  // Contadores
+  membersCount    Int      @default(0)
+  postsCount      Int      @default(0)
+  
+  // Relações
+  owner           User     @relation("CommunityOwner", fields: [ownerId], references: [id])
+  ownerId         Int
+  
+  moderators      CommunityModerator[]
+  members         CommunityMember[]
+  posts           CommunityPost[]
+  bans            CommunityBan[]
+  
+  @@index([slug])
+  @@index([name])
+  @@index([ownerId])
+  @@index([createdAt])
+}
+
+model CommunityModerator {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  
+  // Permissões
+  canModerate Boolean  @default(true)  // pode moderar posts/comentários
+  canBan      Boolean  @default(false) // pode banir usuários
+  canInvite   Boolean  @default(false) // pode convidar moderadores
+  canEdit     Boolean  @default(false) // pode editar configurações da comunidade
+  
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  communityId Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  
+  @@unique([communityId, userId])
+  @@index([communityId])
+}
+
+model CommunityMember {
+  id          Int      @id @default(autoincrement())
+  joinedAt    DateTime @default(now())
+  
+  // Status
+  isActive    Boolean  @default(true)
+  isMuted     Boolean  @default(false)
+  mutedUntil  DateTime?
+  
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  communityId Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+}
+
+model CommunityPost {
+  id              Int      @id @default(autoincrement())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Conteúdo
+  title           String   @db.VarChar(300)
+  content         String?  @db.Text
+  type            PostType @default(TEXT)
+  
+  // Mídia
+  imageUrl        String?
+  videoUrl        String?
+  linkUrl         String?
+  linkTitle       String?
+  linkDescription String?
+  
+  // Status
+  isApproved      Boolean  @default(true)
+  isActive        Boolean  @default(true)
+  isPinned        Boolean  @default(false)
+  isLocked        Boolean  @default(false)
+  
+  // Contadores
+  upvotes         Int      @default(0)
+  downvotes       Int      @default(0)
+  commentsCount   Int      @default(0)
+  sharesCount     Int      @default(0)
+  
+  // Relações
+  community       Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  communityId     Int
+  author          User      @relation(fields: [authorId], references: [id])
+  authorId        Int
+  
+  // Conectar com sistema existente de comentários
+  post            Post?     @relation(fields: [postId], references: [id])
+  postId          Int?
+  
+  @@index([communityId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([upvotes])
+}
+
+model CommunityBan {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  expiresAt   DateTime?
+  
+  reason      String   @db.Text
+  isPermanent Boolean  @default(false)
+  isActive    Boolean  @default(true)
+  
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  communityId Int
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      Int
+  
+  // Quem aplicou o ban
+  bannedBy    Int
+  
+  @@unique([communityId, userId])
+  @@index([communityId])
+  @@index([userId])
+}
+
+enum PostType {
+  TEXT
+  IMAGE
+  VIDEO
+  LINK
+  POLL
 }
 
 model Post {
@@ -69,6 +233,9 @@ model Post {
   tags            Tag[]      @relation("PostTags")
   comments        Comment[]
   favoritedBy     UserFavoritePost[]
+  
+  // Relação com posts da comunidade
+  communityPosts  CommunityPost[]
 }
 
 model Comment {
@@ -215,13 +382,13 @@ model Category {
   slug  String @unique
   posts Post[] @relation("PostCategories")
 }
+
 model Tag {
   id    Int    @id @default(autoincrement())
   name  String @unique
   slug  String @unique
   posts Post[] @relation("PostTags")
 }
-
 
 model UserFavoritePost {
   id       Int  @id @default(autoincrement())
@@ -234,7 +401,6 @@ model UserFavoritePost {
 
   @@unique([userId, postId])
 }
-
 
 enum Role {
   USER
